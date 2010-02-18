@@ -96,6 +96,7 @@ public:
         m_NumExactSteps[eImplicit] = 10;
         m_ITLConvergenceTol = 0.1;
         m_MaxTau = numeric_limits<double>::infinity();
+        m_MaxSteps = 0; // special case 0 == no limit
 
         //useful additional parameters
         m_RateChangeBound = changeBound;
@@ -160,8 +161,8 @@ public:
     }
 
     void EvaluateUntil(double tF) {
-        int c =0;
-        while (*m_T < tF  &&  ++c < 100000) {
+        unsigned int c = 0;
+        while (*m_T < tF  &&  (m_MaxSteps == 0 || ++c < m_MaxSteps)) {
             x_SingleStepATL(tF);
             R_CheckUserInterrupt();
         }
@@ -366,6 +367,7 @@ private:
     unsigned int m_NumExactSteps[3];
     double m_ITLConvergenceTol;
     double m_MaxTau;
+    unsigned int m_MaxSteps;
 
     TRates m_Rates; // *current* rates (must be updated if m_X changes!)
     double *m_T;    // *current* time
