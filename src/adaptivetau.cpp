@@ -54,6 +54,14 @@ public:
         SEXP x;
         PROTECT(x = allocVector(REALSXP, m_NumStates));
         copyVector(x, initVal);
+        if (isNull(GET_NAMES(initVal))) {
+            m_VarNames = NULL;
+        } else {
+            SEXP namesO = GET_NAMES(initVal);
+            PROTECT(m_VarNames = allocVector(VECSXP, GET_LENGTH(namesO)));
+            copyVector(m_VarNames, namesO);
+            SET_NAMES(x, m_VarNames);
+        }
         m_X = REAL(x);
 
         // copy full-size Nu matrix into sparse matrix
@@ -121,12 +129,14 @@ public:
         if (m_MaxTauFunc != NULL) {
             ++cnt;
         }
+        if (m_VarNames != NULL) {
+            ++cnt;
+        }
         UNPROTECT(cnt);
         PutRNGstate();
     }
     void SetTLParams(SEXP list) {
-        SEXP names;
-        PROTECT(names = getAttrib(list, R_NamesSymbol));
+        SEXP names = GET_NAMES(list);
 
         for (unsigned int i = 0;  i < GET_LENGTH(names);  ++i) {
             if (!isReal(VECTOR_ELT(list, i))) {
@@ -143,8 +153,6 @@ public:
                         CHAR(CHARACTER_DATA(names)[i]));
             }
         }
-
-        UNPROTECT(1);
     }
 
     void SetDeterministic(int *det, int n) {
@@ -184,9 +192,14 @@ public:
         SET_VECTOR_ELT(dimnames, 1, colnames);
         SET_VECTOR_ELT(colnames, 0, mkChar("time"));
         for (unsigned int i = 0;  i < m_NumStates;  ++i) {
-            char name[10];
-            snprintf(name, 10, "x%i", i+1);
-            SET_VECTOR_ELT(colnames, i+1, mkChar(name));
+            if (m_VarNames  &&  GET_LENGTH(m_VarNames) > i) {
+                SET_VECTOR_ELT(colnames, i+1,
+                               CHARACTER_DATA(m_VarNames)[i]);
+            } else {
+                char name[10];
+                snprintf(name, 10, "x%i", i+1);
+                SET_VECTOR_ELT(colnames, i+1, mkChar(name));
+            }
         }
         SET_DIMNAMES(res, dimnames);
 
@@ -377,6 +390,7 @@ private:
 
     TStates m_X;              //current state
     unsigned int m_NumStates; //total number of states
+    SEXP m_VarNames;          //variable names (if any)
     TTransitions m_Nu;        //state changes caused by transition
     TTransCats m_TransCats; //inc. whether transition is deterministic
     SEXP m_RateFunc; //R function to calculate rates as f(m_X)
@@ -938,11 +952,11 @@ void CStochasticEqns::x_SingleStepATL(double tf) {
 // Exported C entrypoints for calling from R
 
 extern "C" {
-    SEXP adaptiveTau(SEXP s_x, SEXP s_nu, SEXP s_f, SEXP s_fJacob,
+    SEXP adaptiveTau(SEXP s_x0, SEXP s_nu, SEXP s_f, SEXP s_fJacob,
                      SEXP s_params, SEXP s_tf,
                      SEXP s_deterministic, SEXP s_changebound,
                      SEXP s_tlparams, SEXP s_fMaxtau) {
-        if (!isVector(s_x)  ||  !isReal(s_x)) {
+        if (!isVector(s_x0)  ||  !isReal(s_x0)) {
             error("invalid vector of initial values");
         }
         if (!isMatrix(s_nu)  ||  !isInteger(s_nu)) {
@@ -957,14 +971,14 @@ extern "C" {
         if (!isReal(s_tf)) {
             error("invalid final time");
         }
-        if (GET_LENGTH(s_x) != INTEGER(GET_DIM(s_nu))[0]) {
+        if (GET_LENGTH(s_x0) != INTEGER(GET_DIM(s_nu))[0]) {
             error("mismatch between number of state variables and number of rows in transition matrix");
         }
         if (!isVector(s_deterministic)  ||  !isLogical(s_deterministic)) {
             error("invalid deterministic parameter -- must be logical vector");
         }
         if (!isVector(s_changebound)  ||  !isReal(s_changebound)  ||
-            GET_LENGTH(s_changebound) != GET_LENGTH(s_x)) {
+            GET_LENGTH(s_changebound) != GET_LENGTH(s_x0)) {
             error("invalid relratechange");
         }
         if (!isVector(s_tlparams)) {
@@ -974,7 +988,7 @@ extern "C" {
             error("invalid maxTau function");
         }
 
-        CStochasticEqns eqns(s_x, INTEGER(s_nu), INTEGER(GET_DIM(s_nu))[1],
+        CStochasticEqns eqns(s_x0, INTEGER(s_nu), INTEGER(GET_DIM(s_nu))[1],
                              s_f, s_fJacob, s_params, REAL(s_changebound),
                              s_fMaxtau);
         eqns.SetTLParams(s_tlparams);
