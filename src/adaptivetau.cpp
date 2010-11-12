@@ -26,6 +26,7 @@
 #include <vector>
 #include <limits>
 #include <cassert>
+#include <cmath>
 
 #include <R.h>
 #include <Rdefines.h>
