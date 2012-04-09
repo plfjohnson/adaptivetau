@@ -5,8 +5,10 @@
 \usepackage{amsmath}
 \usepackage{url}
 
+<<echo=FALSE>>=
+pdf.options(pointsize=11) #match latex pointsize
+@ 
 
-\usepackage{Sweave}
 \begin{document}
 \title{\texttt{adaptivetau}: efficient stochastic simulations in R}
 \author{Philip Johnson}
@@ -63,74 +65,65 @@ However, these equations ignore stochastic variance and the possibility of speci
 \item death of predators: $\Delta_{3}=[0,-1]$ with rate $\lambda_{3}=\delta X_{2}$
 \end{enumerate}
 Now we can write this model in R for use with
-\begin{Schunk}
-\begin{Sinput}
-> library(adaptivetau)
-\end{Sinput}
-\end{Schunk}
+<<>>=
+library(adaptivetau)
+@ 
 First we specify our transitions ($\Delta$):
-\begin{Schunk}
-\begin{Sinput}
-> transitions = cbind(c( 1, 0), # prey grow (+1 prey, no change predator)
-+                     c(-2, 1), # predation (-2 prey, +1 predator)
-+                     c( 0,-1)) # predator dies (no change prey, -1 predator)
-\end{Sinput}
-\end{Schunk}
+<<>>=
+transitions = cbind(c( 1, 0), # prey grow (+1 prey, no change predator)
+                    c(-2, 1), # predation (-2 prey, +1 predator)
+                    c( 0,-1)) # predator dies (no change prey, -1 predator)
+@ 
 Next we write a function to calculate the rates of each transition ($\lambda$):
-\begin{Schunk}
-\begin{Sinput}
-> lvRateF <- function(x, params, t) {
-+   return(c(params$r * x["prey"],              # rate of prey growing
-+            params$beta * x["prey"]*x["pred"], # rate of predation
-+            params$delta * x["pred"]))         # rate of predators dying
-+ }
-\end{Sinput}
-\end{Schunk}
+<<>>=
+lvRateF <- function(x, params, t) {
+  return(c(params$r * x["prey"],              # rate of prey growing
+           params$beta * x["prey"]*x["pred"], # rate of predation
+           params$delta * x["pred"]))         # rate of predators dying
+}
+@ 
 Finally we run the simulations setting initial conditions (\texttt{init.values}), parameters (\texttt{params}), and the simulation stop time (\texttt{tf}):
-\begin{Schunk}
-\begin{Sinput}
-> set.seed(4) # set random number generator seed to be reproducible
-> simResults = ssa.adaptivetau(init.values = c(prey = 1000, pred = 500),
-+                              transitions, lvRateF,
-+                              params = list(r=10, beta=0.01, delta=10),
-+                              tf=12)
-\end{Sinput}
-\end{Schunk}
+<<>>=
+set.seed(4) # set random number generator seed to be reproducible
+simResults = ssa.adaptivetau(init.values = c(prey = 1000, pred = 500),
+                             transitions, lvRateF,
+                             params = list(r=10, beta=0.01, delta=10),
+                             tf=12)
+@ 
 We plot the results in Figure \ref{fig-lv} using the following code:
-\begin{Schunk}
-\begin{Sinput}
-> matplot(simResults[,"time"], simResults[,c("prey","pred")], type='l',
-+         xlab='Time', ylab='Counts (log scale)', log='y')
-> legend("bottomleft", legend=c("prey", "predator"), lty=1:2, col=1:2)
-\end{Sinput}
-\end{Schunk}
+<<eval=FALSE>>=
+matplot(simResults[,"time"], simResults[,c("prey","pred")], type='l',
+        xlab='Time', ylab='Counts (log scale)', log='y')
+legend("bottomleft", legend=c("prey", "predator"), lty=1:2, col=1:2)
+@ 
 
 \begin{figure}
   \centerline{
-\includegraphics{adaptivetau-007}
+<<fig=TRUE,echo=FALSE,width=4,height=2.5>>=
+par(mex=1, mar=c(3,3,1,1), mgp=c(2,.75,0))
+matplot(simResults[,"time"], simResults[,c("prey","pred")], type='l',
+        xlab='Time', ylab='Counts (log scale)', log='y')
+legend("bottomleft", legend=c("prey", "predator"), lty=1:2, col=1:2)
+@
 }\caption{\label{fig-lv} Simulated trajectory from the Lotka-Voltera model under the adaptive tau-leaping approximation.}
 \end{figure}
 
 \subsection*{Exact vs approximate algorithms}
 The above code uses the adaptive tau-leaping approximation for simulation.  An exact simulation requires more computational time, but captures more fine-scale variance, as you can see by running another simulation using the \texttt{ssa.exact} command:
-\begin{Schunk}
-\begin{Sinput}
-> simResults = ssa.exact(init.values = c(prey = 1000, pred = 500),
-+                        transitions, lvRates,
-+                        params = list(r=10, beta=0.01, delta=10),
-+                        tf=12)
-\end{Sinput}
-\end{Schunk}
+<<eval=FALSE>>=
+simResults = ssa.exact(init.values = c(prey = 1000, pred = 500),
+                       transitions, lvRates,
+                       params = list(r=10, beta=0.01, delta=10),
+                       tf=12)
+@
 Alternatively, you can improve the approximation by reducing the $\epsilon$ variable in the tau-leaping parameters (\texttt{tl.params}) when calling \texttt{ssa.adaptivetau} (in the earlier example, $\epsilon$ takes its default value of 0.05):
-\begin{Schunk}
-\begin{Sinput}
-> simResults = ssa.adaptivetau(init.values = c(prey = 1000, pred = 500),
-+                              transitions, lvRates,
-+                              params = list(r=10, beta=0.01, delta=10),
-+                              tf=12,
-+                              tl.params = list(epsilon = 0.005))
-\end{Sinput}
-\end{Schunk}
+<<eval=FALSE>>=
+simResults = ssa.adaptivetau(init.values = c(prey = 1000, pred = 500),
+                             transitions, lvRates,
+                             params = list(r=10, beta=0.01, delta=10),
+                             tf=12,
+                             tl.params = list(epsilon = 0.005))
+@
 
 Note we have explicitly linked the death of prey to growth in the predator population by placing these two actions in a single transition and incorporating the parameter $\alpha$ into the $\Delta_{2}$ vector. Alternatively, these actions could have been split into two independent transitions with state change vectors $[-1,0]$ and $[0,+1]$ and rates $\alpha X_{1}X_{2}$ and $\beta X_{1}X_{2}$. This formulation would yield slightly increased variance in the stochastic process since these actions are uncoupled.
 
@@ -142,21 +135,22 @@ With the parameters and initial conditions used in this example, the determinist
 Consider a Moran model for the evolution of a population of size $N$ in which we track the number of individuals with a novel mutant allele ($X$) versus the number of individuals with the ancestral allele ($N-X$).  Since the population size is a constant, this model has only one independent variable ($X$).  Under the Moran model, evolution occurs when one individual is chosen to reproduce and, simultaneously, one individual is chosen to die.  Thus the model allows only ``one-step'' transitions in which $X$ either decreases or increases by one ($\Delta_1=[-1]$ and $\Delta_2=[+1]$).  Both transitions occur at the same rate: $\lambda_1 = \lambda_2 = \frac{X}{N}\frac{N-X}{N}$.
 
 Although this model has only one variable, we have two ``critical values'' for this variable: $X=0$ and $X=N$ are both absorbing boundaries.  The adaptive tau-leaping approximation is careful near the $X=0$ boundary, but it is unaware of other critical values.  We work around this problem by creating an additional variable for the ancestral allele, such that $X_2 = 0$ when $X_1 = N$.
-\begin{Schunk}
-\begin{Sinput}
-> library(adaptivetau)
-> transitions = cbind(c(-1,+1), # num individuals w/ derived allele decreases
-+                     c(+1,-1)) # num individuals w/ derived allele increases
-> driftRateF <- function(x, params, t) {
-+   rep(x[1] * x[2]/sum(x)^2, 2)
-+ }
-> r=ssa.adaptivetau(c(500,500), transitions, driftRateF, params=NULL, tf=Inf)
-\end{Sinput}
-\end{Schunk}
+<<>>=
+library(adaptivetau)
+transitions = cbind(c(-1,+1), # num individuals w/ derived allele decreases
+                    c(+1,-1)) # num individuals w/ derived allele increases
+driftRateF <- function(x, params, t) {
+  rep(x[1] * x[2]/sum(x)^2, 2)
+}
+r=ssa.adaptivetau(c(500,500), transitions, driftRateF, params=NULL, tf=Inf)
+@ 
 Simulation results are plotted in Figure \ref{fig-drift}.  The above code also demonstrates an alternative stopping condition for the simulation: when \texttt{tf=Inf}, the simulation will run until all transition rates are 0 (in this case, when either allele fixes in the population).
 \begin{figure}
   \centerline{
-\includegraphics{adaptivetau-011}
+<<fig=TRUE,echo=FALSE,width=4,height=2.5>>=
+par(mex=1, mar=c(3,3,1,1), mgp=c(2,.75,0))
+plot(r[,"time"], r[,"x1"], type='l', xlab='Time', ylab='Number of derived alleles', ylim=c(0,1000))
+@
 }\caption{\label{fig-drift} Genetic drift starting at frequency of 50\% in a population of size 1000.}
 \end{figure}
 
@@ -176,40 +170,47 @@ First, the differential equation representation:
 where we assume transmissible contact with infected animals occurs at a constant rate $z$, human-to-human transmissible contact occurs with rates $\beta_{1,2}$, human adaptation occurs with rate $\mu$, death due to infection with rates $\delta_{1,2}$ and recovery with rates $\gamma_{1,2}$.
 
 Now we will make a stochastic version of this model in R.  Since this model has a few more variable than our earlier examples, we will use the \texttt{ssa.maketran} helper function which eases creation of the transition matrix:
-\begin{Schunk}
-\begin{Sinput}
-> init.values = c(
-+   S = 10^5, # susceptible humans
-+   I1 = 0,   # infected humans
-+   I2 = 0,   # infected humans
-+   R = 0)    # recovered (and immune) humans
-> transitions = ssa.maketrans(names(init.values),
-+   rbind('S', -1, 'I1', +1), # infection (animal-adapted strain)
-+   rbind('S', -1, 'I2', +1), # infection (human-adapted strain)
-+   rbind('I1', -1),          # death due to infection
-+   rbind('I2', -1),
-+   rbind('I1', -1, 'R', +1), # recovery
-+   rbind('I2', -1, 'R', +1)
-+   )
-> SIRrateF <- function(x, p, t) {
-+   return(c(x["S"] * (p$zoonotic + p$beta[1]*x["I1"]), # infection rate
-+            x["S"] * (p$beta[2]*x["I2"] + p$mu*p$beta[1]*x["I1"]),
-+            params$delta[1]*x["I1"], # infected death rate
-+            params$delta[2]*x["I2"],
-+            params$gamma[1]*x["I1"], # recovery rate
-+            params$gamma[2]*x["I2"]))
-+ }
-> params = list(zoonotic=1e-6, beta=c(1e-7, 1e-5), mu=0.1,
-+               delta=c(1e-2,1e-5), gamma=c(0.1, 0.1))
-> set.seed(3) # set random number generator seed to be reproducible
-> r=ssa.adaptivetau(init.values, transitions, SIRrateF, params, tf=1000)
-\end{Sinput}
-\end{Schunk}
+<<>>=
+init.values = c(
+  S = 10^5, # susceptible humans
+  I1 = 0,   # infected humans
+  I2 = 0,   # infected humans
+  R = 0)    # recovered (and immune) humans
+
+transitions = ssa.maketrans(names(init.values),
+  rbind('S', -1, 'I1', +1), # infection (animal-adapted strain)
+  rbind('S', -1, 'I2', +1), # infection (human-adapted strain)
+  rbind('I1', -1),          # death due to infection
+  rbind('I2', -1),
+  rbind('I1', -1, 'R', +1), # recovery
+  rbind('I2', -1, 'R', +1)
+  )
+
+SIRrateF <- function(x, p, t) {
+  return(c(x["S"] * (p$zoonotic + p$beta[1]*x["I1"]), # infection rate
+           x["S"] * (p$beta[2]*x["I2"] + p$mu*p$beta[1]*x["I1"]),
+           params$delta[1]*x["I1"], # infected death rate
+           params$delta[2]*x["I2"],
+           params$gamma[1]*x["I1"], # recovery rate
+           params$gamma[2]*x["I2"]))
+}
+
+params = list(zoonotic=1e-6, beta=c(1e-7, 1e-5), mu=0.1,
+              delta=c(1e-2,1e-5), gamma=c(0.1, 0.1))
+
+set.seed(3) # set random number generator seed to be reproducible
+r=ssa.adaptivetau(init.values, transitions, SIRrateF, params, tf=1000)
+@ 
 Output from this simulation appears in Figure \ref{fig-SIR}.
 \begin{figure}
   \centerline{
-\includegraphics{adaptivetau-013}
+<<fig=TRUE,echo=FALSE,width=4,height=2.5>>=
+par(mex=1, mar=c(3,3,1,1), mgp=c(2,.75,0))
+matplot(r[,"time"], r[,c("S","I1","I2")], type='l', log='y', xlab="Time", ylab="Individuals (log scale)", col=c('black', 'red', 'blue'))
+legend("topright", legend=c("S", expression(I[1]), expression(I[2])), lty=1:3, col=c('black', 'red', 'blue'))
+@
 }\caption{\label{fig-SIR} Simulated trajectory from SIIR model of stuttering zoonotic transmission.  Zoonotic transmission occurs many times (red dashed line) before the pathogen becomes human-adapted and creates a serious epidemic (blue dotted line).}
+@ 
 \end{figure}
 
 
