@@ -33,8 +33,9 @@ ssa.exact(init.values, transitions, rateFunc, params, tf)
       \item single real number giving the current time (all simulations
       start at t=0)
     }
-    If the \code{\link[compiler]{compiler}} package is available, this
-    function will be automatically byte code compiled before use.
+    If the compiler package is available, this function will be
+    automatically byte code compiled using \code{\link[compiler]{cmpfun}}
+    before use.
   }
   \item{params}{
     any R variable to be passed as-is to rateFunc, presumably specifying
@@ -84,7 +85,7 @@ lvrates <- function(x, params, t) {
 }
 params=list(preygrowth=10, eat=0.01, preddeath=10);
 r=ssa.exact(c(prey = 1000, pred = 500),
-            matrix(c(1,0, -2,1, 0,-1), nrow=2), lvrates, params, tf=1)
+            matrix(c(1,0, -2,1, 0,-1), nrow=2), lvrates, params, tf=2)
 matplot(r[,"time"], r[,c("prey","pred")], type='l', xlab='Time', ylab='Counts')
 legend("topleft", legend=c("prey", "predator"), lty=1:2, col=1:2)
 }

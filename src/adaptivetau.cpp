@@ -29,16 +29,11 @@
 #include <iostream>
 #include <vector>
 #include <limits>
-#include <cassert>
 #include <cmath>
 #include <sstream>
 #include <stdexcept>
 
 #include <R.h>
-/*
-#include <Rdefines.h>
-#undef TRUE
-*/
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/Lapack.h>
@@ -52,9 +47,12 @@ enum EStepType {
     eImplicit
 };
 
-bool debug = false;
+const bool debug = false;
 
 //use below rather than R's "error" directly (which will not free memory, etc.)
+#ifdef throwError
+#undef throwError
+#endif
 #define throwError(e) { ostringstream s; s << e; throw runtime_error(s.str()); }
 
 // Call R function without responding to user interrupts (or other, I
@@ -408,7 +406,7 @@ protected:
         return REAL(res);
     }
     double x_CalcUserMaxTau(void) {
-        assert(m_MaxTauFunc);
+        if (!m_MaxTauFunc) { throwError("logic error at line " << __LINE__) }
         SEXP res = evalWithoutInterrupts(m_MaxTauFunc);
         if (length(res) != 1  || !isReal(res)) {
             throwError("invalid return value from maxTau function (should be "
@@ -504,7 +502,6 @@ protected:
         return tau;
     }
 
-    
 private:
     bool m_ExtraChecks; //turns on extra checks on rates returned by
                         //user-supplied rate function. Slower, but if
@@ -625,7 +622,7 @@ unsigned int CStochasticEqns::x_PickCritical(double critRate) const {
             d += m_Rates[j]/critRate;
         }
     }
-    assert(d >= r); //otherwise logic error..
+    if (!(d >= r)) { throwError("logic error at line " << __LINE__) }
     return j-1;
 }
 
@@ -695,7 +692,7 @@ void CStochasticEqns::x_SingleStepExact(double tf) {
                 d += m_Rates[j]/stochRate;
             }
         }
-        assert(d >= r); //otherwise logic error..
+        if (!(d >= r)) { throwError("logic error at line " << __LINE__) }
         --j;
 
         //take transition "j"
@@ -716,7 +713,7 @@ void CStochasticEqns::x_SingleStepExact(double tf) {
 // updated if so)
 // NOTE: See equation (7) in Cao et al. (2007)
 bool CStochasticEqns::x_SingleStepITL(double tau) {
-    assert(m_RateJacobianFunc != NULL);
+    if (!m_RateJacobianFunc) { throwError("logic error at line " << __LINE__) }
     double *origX = new double[m_NumStates];
     double *origRates = new double[m_NumStates];
     memcpy(origX, m_X, sizeof(double)*m_NumStates);
@@ -1082,7 +1079,7 @@ void CStochasticEqns::x_SingleStepATL(double tf) {
     bool tauTooBig;
     do {
         tauTooBig = false;
-        assert(tau1 > 0);
+        if (!(tau1 > 0)) { throwError("logic error at line " << __LINE__) }
         if (tau1 < m_ExactThreshold / (criticalRate + noncritRate)) {
             if (debug) {
                 cerr << "Taking exact steps.. (tau1 = " << tau1 << ")" << endl;

@@ -38,8 +38,9 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
       \item single real number giving the current time (all simulations
       start at t=0)
     }
-    If the \code{\link[compiler]{compiler}} package is available, this
-    function will be automatically byte code compiled before use.
+    If the compiler package is available, this function will be
+    automatically byte code compiled using \code{\link[compiler]{cmpfun}}
+    before use.
   }
   \item{params}{
     any R variable to be passed as-is to rateFunc, presumably specifying
@@ -59,8 +60,9 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
     \bold{NOTE:} the implicit tau-leaping algorithm will reduce the observed
     variance for fast-changing state variables, although the mean will
     be correct.
-    If the \code{\link[compiler]{compiler}} package is available, this
-    function will be automatically byte code compiled before use.
+    If the compiler package is available, this function will be
+    automatically byte code compiled using \code{\link[compiler]{cmpfun}}
+    before use.
   }
   \item{maxTauFunc}{ R function that returns single real number giving
     the maximum tau leap allowable from the current state.  Only
@@ -68,6 +70,9 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
     greater than tl.params$maxtau (should only need to use if your rate
     functions have a dramatically discontinuous first derivative).
     Takes same parameters as rateFunc.
+    If the compiler package is available, this function will be
+    automatically byte code compiled using \code{\link[compiler]{cmpfun}}
+    before use.
   }
   \item{deterministic}{
     if not FALSE, one-dimensional logical vector of length equal to the

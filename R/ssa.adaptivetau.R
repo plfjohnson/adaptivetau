@@ -6,7 +6,7 @@ ssa.compile <- function(f) {
   haveCompiler = require(compiler, quietly=TRUE)
   options(warn=origWarn)
   if (haveCompiler) {
-    cmpfun(f, options=list(suppressUndefined=TRUE))
+    compiler::cmpfun(f, options=list(suppressUndefined=TRUE))
   } else {
     f
   }
@@ -23,7 +23,7 @@ function(init.values, transitions, rateFunc, params, tf,
                init.values, transitions,
                ssa.compile(rateFunc), ssa.compile(jacobianFunc),
                params, tf, deterministic,
-               relratechange, tl.params, maxTauFunc))
+               relratechange, tl.params, ssa.compile(maxTauFunc)))
 }
 
 ssa.exact <-
