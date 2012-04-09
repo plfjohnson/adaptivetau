@@ -239,7 +239,7 @@ public:
         //main loop
         while (*m_T < tF  &&  (m_MaxSteps == 0 || c < m_MaxSteps)) {
             x_SingleStepATL(tF);
-            if (++c % 10000 == 0  &&  checkUserInterrupt()) {
+            if (++c % 10 == 0  &&  checkUserInterrupt()) {
                 throwError("simulation interrupted by user at time " << *m_T
                            << " after " << c << " time steps.");
             }
@@ -258,7 +258,7 @@ public:
             x_UpdateRates();
             x_SingleStepExact(tF);
             m_TimeSeries.push_back(STimePoint(*m_T, m_X, m_NumStates));
-            if (++c % 10000 == 0  &&  checkUserInterrupt()) {
+            if (++c % 10 == 0  &&  checkUserInterrupt()) {
                 throwError("simulation interrupted by user at time " << *m_T
                            << " after " << c << " time steps.");
             }
