@@ -173,7 +173,7 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
 
 # We have three potential transitions:
 transitions = cbind(c( 1, 0), # prey grow (+1 prey)
-                    c(-1, 1), # predation (-1 prey, +1 predator)
+                    c(-2, 1), # predation (-2 prey, +1 predator)
                     c( 0,-1)) # predator dies (-1 predator)
 
 # Function to calculate transition rates, given variables and parameters
@@ -187,23 +187,23 @@ lvrates <- function(x, params, t) {
 params = list(preygrowth=10, eat=0.01, preddeath=10);
 
 # Set the random seed (only necessary if you want to reproduce results)
-set.seed(1)
+set.seed(4)
 
 # Perform the stochastic simulation!
-r=ssa.adaptivetau(c(prey = 1000, pred = 1000),
-                  transitions, lvrates, params, tf=20)
+r=ssa.adaptivetau(c(prey = 1000, pred = 500),
+                  transitions, lvrates, params, tf=12)
 
 # Plot the results
-matplot(r[,"time"], r[,c("prey","pred")], type='l', xlab='Time', ylab='Counts')
-legend("topleft", legend=c("prey", "predator"), lty=1:2, col=1:2)
+matplot(r[,"time"], r[,c("prey","pred")], type='l', xlab='Time',
+        ylab='Counts (log scale)', log='y')
+legend("bottomleft", legend=c("prey", "predator"), lty=1:2, col=1:2)
 
 
 # However, if you are interested in very fine-scale variance, perhaps the
 # default parameters smooth too much.  Try reducing the tl.param epsilon
 # to see a better approximation:
-set.seed(1)
-s=ssa.adaptivetau(c(prey = 1000, pred = 1000),
-                  transitions, lvrates, params, tf=20,
+s=ssa.adaptivetau(c(prey = 1000, pred = 500),
+                  transitions, lvrates, params, tf=12,
                   tl.params = list(epsilon=0.01)) # reduce "epsilon"
 par(mfrow=c(2,1));
 matplot(r[r[,"time"]<2,"time"], r[r[,"time"]<2,c("prey","pred")],

@@ -33,6 +33,8 @@ ssa.exact(init.values, transitions, rateFunc, params, tf)
       \item single real number giving the current time (all simulations
       start at t=0)
     }
+    If the \code{\link[compiler]{compiler}} package is available, this
+    function will be automatically byte code compiled before use.
   }
   \item{params}{
     any R variable to be passed as-is to rateFunc, presumably specifying
@@ -49,9 +51,9 @@ ssa.exact(init.values, transitions, rateFunc, params, tf)
   simulation algorithm is used in the (approximate) adaptive tau
   stochastic simulation as well.
   
-  The initial values, transition matrix & transition rates must all be
-  designed such that variables are always non-negative.  The algorithm
-  relies on this invariant.
+  The initial values, transition matrix, and transition rates must all
+  be designed such that variables are always non-negative.  The
+  algorithm relies on this invariant.
 }
 \value{
   Two-dimensional matrix with rows for every timepoint at which the
@@ -72,7 +74,7 @@ ssa.exact(init.values, transitions, rateFunc, params, tf)
   \code{\link[GillespieSSA]{GillespieSSA}}.
 }
 \examples{
-# Lotka-Volterra example
+## Lotka-Volterra example
 lvrates <- function(x, params, t) {
   with(params, {
     return(c(preygrowth*x["prey"],      ## prey growth rate
@@ -81,8 +83,8 @@ lvrates <- function(x, params, t) {
   })
 }
 params=list(preygrowth=10, eat=0.01, preddeath=10);
-r=ssa.exact(c(prey = 1000, pred = 1000),
-            matrix(c(1,0, -1,1, 0,-1), nrow=2), lvrates, params, tf=1)
+r=ssa.exact(c(prey = 1000, pred = 500),
+            matrix(c(1,0, -2,1, 0,-1), nrow=2), lvrates, params, tf=1)
 matplot(r[,"time"], r[,c("prey","pred")], type='l', xlab='Time', ylab='Counts')
 legend("topleft", legend=c("prey", "predator"), lty=1:2, col=1:2)
 }
