@@ -1,3 +1,10 @@
+----------------------------
+Version 1.0-1 - 27 Sept 2012
+----------------------------
+  - Fixed validity check that aborts on non-integer initial conditions
+    (previously was being too permissive).
+  - removed .Rhistory file accidently left under /vignettes directory
+
 ------------------------
 Version 1.0 - 9 Apr 2012
 ------------------------

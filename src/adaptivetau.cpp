@@ -153,7 +153,7 @@ public:
                 throwError("initial value for variable " << i+1 <<
                            " must be positive (currently " << m_X[i] << ")");
             }
-            if (!m_RealValuedVariables[i]  &&  (m_X[i] - trunc(m_X[i]) > 1e5)) {
+            if (!m_RealValuedVariables[i]  &&  (m_X[i] - trunc(m_X[i]) > 1e-5)){
                 throwError("initial value for variable " << i+1 <<
                            " must be an integer (currently " << m_X[i] << ")");
             }
