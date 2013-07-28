@@ -55,19 +55,6 @@ const bool debug = false;
 #endif
 #define throwError(e) { ostringstream s; s << e; throw runtime_error(s.str()); }
 
-// Call R function without responding to user interrupts (or other, I
-// suppose).  This lets use catch them and free memory in the heap.
-// Unfortunately, R_interrupts_suspended is not directly part of the R
-// API (although it is used by the BEGIN/END_SUSPEND_INTERRUPTS macros
-// in R_ext/GraphicsDevice.h)
-extern "C" { LibExtern Rboolean R_interrupts_suspended;}
-SEXP evalWithoutInterrupts(SEXP expr) {
-    R_interrupts_suspended = TRUE;
-    SEXP res = eval(expr, NULL);
-    R_interrupts_suspended = FALSE;
-    return res;
-}
-
 class CStochasticEqns {
 public:
     CStochasticEqns(SEXP initVal, int *nu, unsigned int numTrans,
@@ -365,7 +352,7 @@ protected:
         if (m_Rates != NULL) { 
             UNPROTECT(1);
         }
-        SEXP res = evalWithoutInterrupts(m_RateFunc);
+        SEXP res = eval(m_RateFunc, R_EmptyEnv);
         PROTECT(res);
         m_Rates = REAL(res);
 
@@ -390,7 +377,7 @@ protected:
         }
     }
     double* x_CalcJacobian(void) {
-        SEXP res = evalWithoutInterrupts(m_RateJacobianFunc);
+        SEXP res = eval(m_RateJacobianFunc, R_EmptyEnv);
         if (!isMatrix(res)) {
             throwError("invalid Jacobian function -- should return a " <<
                        m_NumStates << " by " << m_Nu.size() << " matrix");
@@ -407,7 +394,7 @@ protected:
     }
     double x_CalcUserMaxTau(void) {
         if (!m_MaxTauFunc) { throwError("logic error at line " << __LINE__) }
-        SEXP res = evalWithoutInterrupts(m_MaxTauFunc);
+        SEXP res = eval(m_MaxTauFunc, R_EmptyEnv);
         if (length(res) != 1  || !isReal(res)) {
             throwError("invalid return value from maxTau function (should be "
                        "a single real number)");
