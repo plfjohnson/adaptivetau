@@ -12,7 +12,7 @@ Approximate stochastic simulation algorithm
 \usage{
 ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
                 jacobianFunc = NULL, maxTauFunc = NULL,
-                deterministic = FALSE,
+                deterministic = NULL, halting = NULL,
                 relratechange = rep(1, length(init.values)),
                 tl.params = NULL)
 }
@@ -23,9 +23,17 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
     must never take negative values.
   }
   \item{transitions}{
-    Two-dimensional matrix of integers specifying how each state
-    variable (rows) should be changed for a given transition (columns).
-    Generally this will be a sparse matrix of primarily 1s and -1s.
+    One of two possible data types:
+    \itemize{
+      \item A list with length equal to the number of transitions.  Each
+      element of the list should be an integer vector specifying a
+      transition (i.e., which state(s) change and by how much).
+      \item A two-dimensional matrix of integers specifying how each state
+      variable (rows) should be changed for a given transition (columns).
+      Generally this will be a sparse matrix of primarily 1s and -1s,
+      which can make this structure inefficient.
+    }
+    See the example for details as well as \code{\link{ssa.maketrans}}.
   }
   \item{rateFunc}{
     R function that returns instantaneous transition rates for each
@@ -75,13 +83,24 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
     before use.
   }
   \item{deterministic}{
-    if not FALSE, one-dimensional logical vector of length equal to the
-    number of transitions.  Any transitions marked TRUE will be applied
-    every timestep using the \bold{expected} degree of change.  Note
-    this will almost certainly result in non-integer values for any
-    affected state variables.  Also, note that this is still an
-    approximation -- not a true numerical ODE solution -- and at least
-    one transition must be stochastic for this to work at all.
+    Specify transitions to be treated as deterministic.  If not NULL,
+    either a TRUE/FALSE vector of length equal to the number of
+    transitions -or- a integer vector of transition numbers to be
+    treated as deterministic (i.e. applying \code{\link{which}} to the
+    former).  Deterministic transitions will be applied every timestep
+    using the \bold{expected} degree of change.  Note this will almost
+    certainly result in non-integer values for any affected state
+    variables.  Also, note that this is still an approximation -- not a
+    true numerical ODE solution -- and at least one transition must be
+    stochastic for this to work at all.
+  }
+  \item{halting}{
+    Specify transitions which, when executed, will cause the simulation
+    to halt.  If not NULL, either a TRUE/FALSE vector of length equal to the
+    number of transitions -or- a integer vector of transition numbers to
+    be treated as halting (i.e. applying \code{\link{which}} to
+    the former).  If halting transitions are specified, then the return
+    value is different (since we want to know which transition halted us).
   }
   \item{relratechange}{
     one-dimensional vector of length equal to the number of state
@@ -92,7 +111,7 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
     1)?  If not, then you need to set this variable to be greater than 1.
   }
   \item{tl.params}{
-    Various parameters to the tau-leaping algorithm itself (best
+    List of various parameters to the tau-leaping algorithm itself (best
     explained by reading original reference):
     \describe{
       \item{epsilon}{default 0.05; increasing will make bigger leaps
@@ -146,9 +165,15 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
   use 1-based numbering where the first variable (or transition) is 1.
 }
 \value{
-  Two-dimensional matrix with rows for every timepoint at which the
+  If no halting transitions are specified, then a two-dimensional matrix with rows for every timepoint at which the
   rateFunc was evaluated and columns giving the value for every state
   variable at that time.  The first column specifies the time.
+
+  If halting transitions are specified, then a list with two elements.
+  The first (\sQuote{dynamics}) is the same two-dimensional matrix as
+  without halting transitions.  The second (\sQuote{haltingTransition})
+  gives the number of the transition that halted the simulation, or NA
+  otherwise.
 }
 \note{
   Development of this package was supported in part by National Science Foundation award DBI-0906041.  Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author and do not necessarily reflect the views of the National Science Foundation.
@@ -177,9 +202,9 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
 ## Simple Lotka-Volterra example
 
 # We have three potential transitions:
-transitions = cbind(c( 1, 0), # prey grow (+1 prey)
-                    c(-2, 1), # predation (-2 prey, +1 predator)
-                    c( 0,-1)) # predator dies (-1 predator)
+transitions = list(c(prey = +1L), # prey grow (+1 prey)
+                   c(prey = -2L, pred = +1L), # predation (-2 prey, +1 predator)
+                   c(pred = -1L)) # predator dies (-1 predator)
 
 # Function to calculate transition rates, given variables and parameters
 lvrates <- function(x, params, t) {

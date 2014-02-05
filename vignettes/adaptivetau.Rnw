@@ -70,20 +70,20 @@ library(adaptivetau)
 @ 
 First we specify our transitions ($\Delta$):
 <<>>=
-transitions = cbind(c( 1, 0), # prey grow (+1 prey, no change predator)
-                    c(-2, 1), # predation (-2 prey, +1 predator)
-                    c( 0,-1)) # predator dies (no change prey, -1 predator)
+transitions = list(c(prey = +1), # prey grow (+1 prey)
+                   c(prey = -2, pred = +1), # predation (-2 prey, +1 predator)
+                   c(pred = -1)) # predator dies (-1 predator)
 @ 
 Next we write a function to calculate the rates of each transition ($\lambda$):
 <<>>=
 lvRateF <- function(x, params, t) {
   return(c(params$r * x["prey"],               # rate of prey growing
            params$beta * x["prey"]*x["pred"] * # rate of predation
-             (x["pred"] >= 2),
+             (x["prey"] >= 2),
            params$delta * x["pred"]))          # rate of predators dying
 }
 @
-Note that the conditional \texttt{(x["pred"] >= 2)} above ensures that the predation transition can never create a negative number of prey (since 2 are subtracted).  Finally we run the simulations setting initial conditions (\texttt{init.values}), parameters (\texttt{params}), and the simulation stop time (\texttt{tf}):
+Note that the conditional \texttt{(x["prey"] >= 2)} above ensures that the predation transition can never create a negative number of prey (since 2 are subtracted).  Finally we run the simulations setting initial conditions (\texttt{init.values}), parameters (\texttt{params}), and the simulation stop time (\texttt{tf}):
 <<>>=
 set.seed(4) # set random number generator seed to be reproducible
 simResults = ssa.adaptivetau(init.values = c(prey = 1000, pred = 500),
@@ -171,7 +171,7 @@ First, the differential equation representation:
 \]
 where we assume transmissible contact with infected animals occurs at a constant rate $z$, human-to-human transmissible contact occurs with rates $\beta_{1,2}$, human adaptation occurs with rate $\mu$, death due to infection with rates $\delta_{1,2}$ and recovery with rates $\gamma_{1,2}$.
 
-Now we will make a stochastic version of this model in R.  Since this model has a few more variable than our earlier examples, we will use the \texttt{ssa.maketrans} helper function which eases creation of the transition matrix:
+Now we will make a stochastic version of this model in R:
 <<>>=
 library(adaptivetau)
 init.values = c(
@@ -180,14 +180,14 @@ init.values = c(
   I2 = 0,   # infected humans
   R = 0)    # recovered (and immune) humans
 
-transitions = ssa.maketrans(names(init.values),
-  rbind('S', -1, 'I1', +1), # infection (animal-adapted strain)
-  rbind('S', -1, 'I2', +1), # infection (human-adapted strain)
-  rbind('I1', -1),          # death due to infection
-  rbind('I2', -1),
-  rbind('I1', -1, 'R', +1), # recovery
-  rbind('I2', -1, 'R', +1)
-  )
+transitions = list(
+    c(S = -1, I1 = +1), # infection (animal-adapted strain)
+    c(S = -1, I2 = +1), # infection (human-adapted strain)
+    c(I1 = -1),         # death due to infection
+    c(I2 = -1),
+    c(I1 = -1, R = +1), # recovery
+    c(I2 = -1, R = +1)
+    )
 
 SIRrateF <- function(x, p, t) {
   return(c(x["S"] * (p$zoonotic + p$beta[1]*x["I1"]), # infection rate
