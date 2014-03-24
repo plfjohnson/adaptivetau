@@ -67,13 +67,13 @@ public:
         m_NumStates = length(initVal);
         SEXP x;
         PROTECT(x = allocVector(REALSXP, m_NumStates));
-        copyVector(x, initVal);
+        copyVector(x, coerceVector(initVal,REALSXP));
         if (isNull(getAttrib(initVal, R_NamesSymbol))) {
             m_VarNames = NULL;
         } else {
             SEXP namesO = getAttrib(initVal, R_NamesSymbol);
 
-            PROTECT(m_VarNames = allocVector(VECSXP, length(namesO)));
+            PROTECT(m_VarNames = allocVector(STRSXP, length(namesO)));
 
             copyVector(m_VarNames, namesO);
             setAttrib(x, R_NamesSymbol, m_VarNames);
@@ -97,6 +97,11 @@ public:
             CRList list(nu);
             m_Nu.resize(list.size());
             for (unsigned int j = 0;  j < list.size();  ++j) {
+                if (!isInteger(list[j])  &&  !isReal(list[j])) {
+                    throwError("the sparse transition matrix representation "
+                               "must be a list of either integer or double "
+                               "vectors.");
+                }
                 const CRVector<int> trans(coerceVector(list[j],INTSXP), true);
                 m_Nu[j].resize(trans.size());
                 for (unsigned int i = 0;  i < m_Nu[j].size();  ++i) {
@@ -104,7 +109,7 @@ public:
                     const char *stateStr = trans.GetName(i);
                     if (strcmp(stateStr, "") == 0) {
                         throwError("transition matrix contains values without "
-                                   "a corresponding state.");
+                                   "a corresponding state variable.");
                     }
                     if (m_VarNames != NULL) {
                         for (state = 0;  state < length(m_VarNames)  &&
@@ -123,7 +128,7 @@ public:
                     }
                     if (state < 0  ||  state >= m_NumStates) {
                         throwError("transition matrix references non-existent "
-                                   "state '" << stateStr << "'");
+                                   "state variable '" << stateStr << "'");
                     }
                     m_Nu[j][i].m_State = state;
                     m_Nu[j][i].m_Mag = trans[i];
@@ -1274,7 +1279,7 @@ extern "C" {
         if (!isNull(s_fJacob)  &&  !isFunction(s_fJacob)) {
             error("invalid Jacobian function");
         }
-        if (!isReal(s_tf)  ||  length(s_tf) != 1) {
+        if (!(isReal(s_tf)  ||  isInteger(s_tf))  ||  length(s_tf) != 1) {
             error("invalid final time");
         }
         if (!isVector(s_changebound)  ||  !isReal(s_changebound)  ||
@@ -1294,7 +1299,7 @@ extern "C" {
         if (!isNull(s_tlparams)) {
             eqns.SetTLParams(s_tlparams);
         }
-        eqns.EvaluateATLUntil(REAL(s_tf)[0]);
+        eqns.EvaluateATLUntil(REAL(coerceVector(s_tf, REALSXP))[0]);
         return eqns.GetResult();
         } catch (exception &e) {
             error(e.what());
@@ -1317,14 +1322,14 @@ extern "C" {
         if (!isFunction(s_f)) {
             error("invalid rate function");
         }
-        if (!isReal(s_tf)  ||  length(s_tf) != 1) {
+        if (!(isReal(s_tf)  ||  isInteger(s_tf))  ||  length(s_tf) != 1) {
             error("invalid final time");
         }
 
         CStochasticEqns eqns(s_x0, s_nu,
                              s_f, NULL, s_params, NULL, NULL,
                              R_NilValue, R_NilValue);
-        eqns.EvaluateExactUntil(REAL(s_tf)[0]);
+        eqns.EvaluateExactUntil(REAL(coerceVector(s_tf, REALSXP))[0]);
         return eqns.GetResult();
         } catch (exception &e) {
             error(e.what());

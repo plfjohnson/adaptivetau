@@ -26,14 +26,18 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
     One of two possible data types:
     \itemize{
       \item A list with length equal to the number of transitions.  Each
-      element of the list should be an integer vector specifying a
-      transition (i.e., which state(s) change and by how much).
+      element of the list should be a vector specifying a transition
+      (i.e., which state(s) change and by how much).  Each entry in the
+      vector needs a name (specifying which state variable to change,
+      either by name or index) and a value (specifying the amount by
+      which this variable will change).
       \item A two-dimensional matrix of integers specifying how each state
       variable (rows) should be changed for a given transition (columns).
       Generally this will be a sparse matrix of primarily 1s and -1s,
       which can make this structure inefficient.
     }
-    See the example for details as well as \code{\link{ssa.maketrans}}.
+    See the example below for details as well as
+    \code{\link{ssa.maketrans}} or the vignette accompanying this package.
   }
   \item{rateFunc}{
     R function that returns instantaneous transition rates for each
@@ -165,9 +169,10 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
   use 1-based numbering where the first variable (or transition) is 1.
 }
 \value{
-  If no halting transitions are specified, then a two-dimensional matrix with rows for every timepoint at which the
-  rateFunc was evaluated and columns giving the value for every state
-  variable at that time.  The first column specifies the time.
+  If no halting transitions are specified, then a two-dimensional matrix
+  with rows for every timepoint at which the rateFunc was evaluated and
+  columns giving the value for every state variable at that time.  The
+  first column specifies the time.
 
   If halting transitions are specified, then a list with two elements.
   The first (\sQuote{dynamics}) is the same two-dimensional matrix as
@@ -202,15 +207,15 @@ ssa.adaptivetau(init.values, transitions, rateFunc, params, tf,
 ## Simple Lotka-Volterra example
 
 # We have three potential transitions:
-transitions = list(c(prey = +1L), # prey grow (+1 prey)
-                   c(prey = -2L, pred = +1L), # predation (-2 prey, +1 predator)
-                   c(pred = -1L)) # predator dies (-1 predator)
+transitions = list(c(prey = +1), # prey grow
+                   c(prey = -2, pred = +1), # predation
+                   c(pred = -1)) # predator dies
 
 # Function to calculate transition rates, given variables and parameters
 lvrates <- function(x, params, t) {
-  return(c(params$preygrowth*x["prey"],      # rate of prey growing
-           x["prey"]*x["pred"]*params$eat,   # rate of predation
-           x["pred"]*params$preddeath))      # rate of predators dying
+  return(c(params$preygrowth*x["prey"],     # rate of prey growing
+           x["prey"]*x["pred"]*params$eat,  # rate of predation
+           x["pred"]*params$preddeath))     # rate of predators dying
 }
 
 # Set the Lotka-Volterra parameters

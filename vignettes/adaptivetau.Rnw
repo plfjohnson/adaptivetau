@@ -68,11 +68,11 @@ Now we can write this model in R for use with
 <<>>=
 library(adaptivetau)
 @ 
-First we specify our transitions ($\Delta$):
+First we specify our transitions ($\Delta$) in sparse form, whereby we only give non-zero entries in the transition matrix (note we could also supply the entire matrix in matrix form; see the `ssa.adaptivetau' help page for details):
 <<>>=
-transitions = list(c(prey = +1), # prey grow (+1 prey)
-                   c(prey = -2, pred = +1), # predation (-2 prey, +1 predator)
-                   c(pred = -1)) # predator dies (-1 predator)
+transitions = list(c(prey = +1),            # trans 1: prey grows
+                   c(prey = -2, pred = +1), # trans 2: predation
+                   c(pred = -1))            # trans 3: predator dies
 @ 
 Next we write a function to calculate the rates of each transition ($\lambda$):
 <<>>=
@@ -135,7 +135,7 @@ With the parameters and initial conditions used in this example, the determinist
 \section*{Example 2: genetic drift}
 Consider a Moran model for the evolution of a population of size $N$ in which we track the number of individuals with a novel mutant allele ($X$) versus the number of individuals with the ancestral allele ($N-X$).  Since the population size is a constant, this model has only one independent variable ($X$).  Under the Moran model, evolution occurs when one individual is chosen to reproduce and, simultaneously, one individual is chosen to die.  Thus the model allows only ``one-step'' transitions in which $X$ either decreases or increases by one ($\Delta_1=[-1]$ and $\Delta_2=[+1]$).  Both transitions occur at the same rate: $\lambda_1 = \lambda_2 = \frac{X}{N}\frac{N-X}{N}$.
 
-Although this model has only one variable, we have two ``critical values'' for this variable: $X=0$ and $X=N$ are both absorbing boundaries.  The adaptive tau-leaping approximation always careful near 0 (the $X=0$ boundary), but it is unaware of other critical values.  We work around this problem by creating an additional variable for the ancestral allele, such that $X_2 = 0$ when $X_1 = N$.
+Although this model has only one variable, we have two ``critical values'' for this variable: $X=0$ and $X=N$ are both absorbing boundaries.  The adaptive tau-leaping approximation is always careful near 0 (the $X=0$ boundary), but it is unaware of other critical values.  We work around this problem by creating an additional variable for the ancestral allele, such that $X_2 = 0$ when $X_1 = N$.
 <<>>=
 library(adaptivetau)
 transitions = cbind(c(-1,+1), # num individuals w/ derived allele decreases
