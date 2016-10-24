@@ -13,5 +13,5 @@ Description: Implements adaptive tau leaping to approximate the
         <doi:10.1063/1.2745299>. This package is based upon work
         supported by NSF DBI-0906041 and NIH K99-GM104158 to Philip
         Johnson and NIH R01-AI049334 to Rustom
-        Antia.http://dx.doi.org/
+        Antia.
 License: GPL (>= 3)
