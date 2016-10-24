@@ -2,7 +2,7 @@ Package: adaptivetau
 Type: Package
 Title: Tau-Leaping Stochastic Simulation
 Version: 2.2-1
-Date: 2016-9-19
+Date: 2016-10-24
 Author: Philip Johnson
 Maintainer: Philip Johnson <plfj@umd.edu>
 Depends: R (>= 2.10.1)
